@@ -3,6 +3,14 @@ import numpy as np
 import unittest
 
 def relative_vector_2d(delta_p1, i1, delta_p2, i2):
+    """Inputs
+    delta_p1: Change in psuedorange 1
+    i1: Unit vector in the direction from satellite 1 to robot
+    delta_p2: Change in psuedorange 2
+    i2: Unit vector in the direction from satellite 2 to robot
+    
+    Output:
+    Returns the resultant relative vector"""
     
     rotate_right = np.array([ [0, -1], [1, 0]])
     j1 = rotate_right@i1
@@ -14,65 +22,49 @@ def relative_vector_2d(delta_p1, i1, delta_p2, i2):
 class TestRTK_2D(unittest.TestCase):
 
     def rtk_2d(self, true_relative_vector, i1, i2):
+        """Works backward from the true_relative_vector, i1, i2 to find change in pseudorange1, change in pseudorange2
+        Then uses relative_vector_2d to work forwards and compares result to true_relative_vector"""
+        # Normalize i1 and i2 to make sure
         i1 = i1/np.linalg.norm(i1)
         i2 = i2/np.linalg.norm(i2)
-        pseudorange_1 = np.dot(true_relative_vector, i1)
-        pseudorange_2 = np.dot(true_relative_vector, i2)
-        relative_vector = relative_vector_2d(pseudorange_1, i1, pseudorange_2, i2)
+        # Work backwards to find delta_psuedoranges 1 and 2
+        delta_pseudorange_1 = np.dot(true_relative_vector, i1)
+        delta_pseudorange_2 = np.dot(true_relative_vector, i2)
+        # Work forwards to find the relative_vector
+        relative_vector = relative_vector_2d(delta_pseudorange_1, i1, pseudorange_2, i2)
+        # Compare true_relative_vector to relative_vector
         np.testing.assert_almost_equal(true_relative_vector, relative_vector)
 
-
-    def test_1(self):
-        true_relative_vector = np.array([2, 10])
-        i1 = np.array([1, 2])
-        i2 = np.array([-1, 1])
-        self.rtk_2d(true_relative_vector, i1, i2)
-
-    def test_2(self):
-        true_relative_vector = np.array([5,0])
-        i1 = np.array([1, 2])
-        i2 = np.array([-1, 1])
-        self.rtk_2d(true_relative_vector, i1, i2)
-
-    def test_51_15(self):
-        true_relative_vector = np.array([5,0])
-        i1 = np.array([5, 1])
-        i1 = i1/np.linalg.norm(i1)
-        i2 = np.array([-5, 1])
-        i2 = i2/np.linalg.norm(i2)
-        pseudorange_1 = np.dot(true_relative_vector, i1)
-        pseudorange_2 = np.dot(true_relative_vector, i2)
-        relative_vector_1 = relative_vector_2d(pseudorange_1, i1, pseudorange_2, i2)
-        np.testing.assert_almost_equal(true_relative_vector, relative_vector_1)
-
-        i1_prime = np.array([1,5])
-        i1_prime = i1_prime/np.linalg.norm(i1_prime)
-        i2_prime = np.array([-1,5])
-        i2_prime = i2_prime/np.linalg.norm(i2_prime)
-        pseudorange_1_prime = np.dot(true_relative_vector, i1_prime)
-        pseudorange_2_prime = np.dot(true_relative_vector, i2_prime)
-        relative_vector_2 = relative_vector_2d(pseudorange_1_prime, i1_prime, pseudorange_2_prime, i2_prime)
-        np.testing.assert_almost_equal(true_relative_vector, relative_vector_2)
-
-    # @unittest.skip
     def test_through_angles(self):
+        # Angles between 0 and pi for true_relative_vector
         angles = np.linspace(0,np.pi,100)
+        # Test counter
         i = 1
+        # Loop through magnitudes
         for magnitude in np.linspace(.1,10,20):
+            # Loop through angles
             for r_angle in angles:
+                # Find i1 and i2 and true_relative_vector
                 i1 = np.array([np.cos(r_angle*2), np.sin(r_angle*2)])
                 i2 = np.array([np.cos(r_angle*10), np.sin(r_angle*10)])
                 true_relative_vector = magnitude*np.array([np.cos(r_angle), np.sin(r_angle)])
+                # Loop through subtests with debugging parameters i, i1, i2, r, dot
                 with self.subTest(i=i, i1 = i1, i2 = i2, r=true_relative_vector, dot=np.dot(i1,i2)):
+                    # If i1 is equal to i2 we need to shift i2 by a little bit
                     if (i1==i2).all():
                         i2 = np.cos(r_angle*10+1), np.sin(r_angle*10+1)
+                    # Call testing function
                     self.rtk_2d(true_relative_vector, i1, i2)
+                    # Increment test counter
                     i += 1
 
 if __name__=='__main__':
 
+    # Uncomment this line in order to run unit tests
     # unittest.main()
 
+
+    # Plot an example where the calculations are off
     fig = plt.figure()
     ax = fig.add_subplot()
     relative_vector = np.array([1.5, 2])
@@ -112,15 +104,13 @@ if __name__=='__main__':
 
     alpha = np.arccos(np.dot(i1,i2))
 
-    component_1 = delta_p1/np.sin(alpha)*j2
+    component_1 = -delta_p1/np.sin(alpha)*j2
     ax.quiver(origin[0], origin[1], component_1[0], component_1[1], color='green', angles='xy', scale_units='xy', scale=1)
 
-    component_2 = -delta_p2/np.sin(alpha)*j1
+    component_2 = delta_p2/np.sin(alpha)*j1
     ax.quiver(origin[0], origin[1], component_2[0], component_2[1], color='blue', angles='xy', scale_units='xy', scale=1)
 
     ax.quiver(component_1[0]+origin[0], component_1[1]+origin[1], component_2[0], component_2[1], color='black', angles='xy', scale_units='xy', scale=1)
-
-    print(i2[1]/i2[0]-relative_vector[1]/relative_vector[0])
     ax.legend()
     ax.set_xlim(-20,20)
     ax.set_ylim(-20,20)
