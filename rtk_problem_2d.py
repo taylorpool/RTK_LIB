@@ -31,7 +31,7 @@ class TestRTK_2D(unittest.TestCase):
         delta_pseudorange_1 = np.dot(true_relative_vector, i1)
         delta_pseudorange_2 = np.dot(true_relative_vector, i2)
         # Work forwards to find the relative_vector
-        relative_vector = relative_vector_2d(delta_pseudorange_1, i1, pseudorange_2, i2)
+        relative_vector = relative_vector_2d(delta_pseudorange_1, i1, delta_pseudorange_2, i2)
         # Compare true_relative_vector to relative_vector
         np.testing.assert_almost_equal(true_relative_vector, relative_vector)
 
@@ -49,7 +49,7 @@ class TestRTK_2D(unittest.TestCase):
                 i2 = np.array([np.cos(r_angle*10), np.sin(r_angle*10)])
                 true_relative_vector = magnitude*np.array([np.cos(r_angle), np.sin(r_angle)])
                 # Loop through subtests with debugging parameters i, i1, i2, r, dot
-                with self.subTest(i=i, i1 = i1, i2 = i2, r=true_relative_vector, dot=np.dot(i1,i2)):
+                with self.subTest(angle = r_angle, i=i, i1 = i1, i2 = i2, r=true_relative_vector, dot=np.dot(i1,i2)):
                     # If i1 is equal to i2 we need to shift i2 by a little bit
                     if (i1==i2).all():
                         i2 = np.cos(r_angle*10+1), np.sin(r_angle*10+1)
@@ -57,11 +57,14 @@ class TestRTK_2D(unittest.TestCase):
                     self.rtk_2d(true_relative_vector, i1, i2)
                     # Increment test counter
                     i += 1
+    def fail(self):
+        print('FAILED')
+        unittest.TestCase.fail()
 
 if __name__=='__main__':
 
     # Uncomment this line in order to run unit tests
-    # unittest.main()
+    unittest.main()
 
 
     # Plot an example where the calculations are off
